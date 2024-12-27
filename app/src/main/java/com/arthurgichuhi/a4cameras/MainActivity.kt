@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.ImageFormat
+import android.graphics.Matrix
 import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice
@@ -23,11 +24,13 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -37,8 +40,8 @@ class MainActivity : ComponentActivity() {
     var frontId:String=""
     var backId:String=""
     val configs = mutableListOf<OutputConfiguration>()
-    val imageReader= ImageReader.newInstance(200,200,ImageFormat.JPEG,2)
-    val imageReader2= ImageReader.newInstance(200,200,ImageFormat.JPEG,2)
+    val imageReader= ImageReader.newInstance(1024,720,ImageFormat.JPEG,2)
+    val imageReader2= ImageReader.newInstance(1024,720,ImageFormat.JPEG,2)
     lateinit var imageBitmap: Bitmap
     lateinit var imageBitmap2:Bitmap
     private lateinit var session: CameraCaptureSession
@@ -51,6 +54,7 @@ class MainActivity : ComponentActivity() {
     lateinit var handlerThread:HandlerThread
     lateinit var handler2:Handler
     lateinit var handlerThread2:HandlerThread
+    var matrix= Matrix().apply { postRotate(-270f) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -81,8 +85,9 @@ class MainActivity : ComponentActivity() {
             // Convert bytes to Bitmap
             val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
 
+            Log.d("Image2","Front Bitmap Height - ${bitmap.height} - ${bitmap.width}")
             // Update the Compose state with the Bitmap
-            imageBitmap = bitmap
+            imageBitmap = Bitmap.createBitmap(bitmap,0,0,image?.width?:400,image?.height?:400,matrix,false)
             runOnUiThread{
                 setContent {
                     MainPreview(if(::imageBitmap.isInitialized)imageBitmap else null,if(::imageBitmap2.isInitialized)imageBitmap2 else null)
@@ -99,9 +104,9 @@ class MainActivity : ComponentActivity() {
 
             // Convert bytes to Bitmap
             val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-
+            Log.d("Image2","Back Bitmap Height - ${bitmap.height} - ${bitmap.width}")
             // Update the Compose state with the Bitmap
-            imageBitmap2 = bitmap
+            imageBitmap2 = Bitmap.createBitmap(bitmap,0,0,image?.width?:400,image?.height?:400,matrix,false)
             Log.d("Image-Init","Receiving Image ${::imageBitmap2.isInitialized}")
             image.close()
         },null)
@@ -112,13 +117,14 @@ class MainActivity : ComponentActivity() {
 
         Box(
             modifier = Modifier
-                .fillMaxSize(),){
+                .fillMaxSize().background(color = Color.Black),
+        ){
                 if(bitmap!=null)Image(bitmap = bitmap.asImageBitmap(),
                     modifier = Modifier.align(
-                    Alignment.CenterStart), contentDescription = "Bitmap")
+                    Alignment.CenterStart).fillMaxSize(.5f), contentDescription = "Bitmap")
                 if (bitmap2!=null)Image(bitmap = bitmap2.asImageBitmap(),
                     modifier = Modifier.align(
-                    Alignment.CenterEnd), contentDescription = "Bitmap")
+                    Alignment.CenterEnd).fillMaxSize(.5f), contentDescription = "Bitmap")
 
         }
     }
